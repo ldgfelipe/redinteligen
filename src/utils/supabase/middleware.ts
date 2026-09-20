@@ -2,13 +2,20 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
 export async function updateSession(request: NextRequest) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // Si no hay env vars (build o Vercel mal configurado), no bloquear - dejar pasar
+  if (!url || !key) {
+    console.warn("Middleware: Missing Supabase env vars, skipping auth check")
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  const supabase = createServerClient(url, key,
     {
       cookies: {
         getAll() {
@@ -29,9 +36,17 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const {
+      data: { user: fetchedUser },
+    } = await supabase.auth.getUser()
+    user = fetchedUser
+  } catch (e) {
+    console.error("Middleware getUser failed:", e)
+    // No bloquear si Supabase no responde, dejar pasar
+    return supabaseResponse
+  }
 
   // Rutas protegidas
   const isProtected = request.nextUrl.pathname.startsWith("/dashboard")
