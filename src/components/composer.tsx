@@ -34,6 +34,7 @@ export default function Composer({ workspaceId, profiles }: { workspaceId: strin
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Error Gemini")
       setGeminiOptions(data.copys)
+      if (data.mocked) setMessage("IA en modo demo (mock) - configura GEMINI_API_KEY para resultados reales")
     } catch (e: unknown) {
       setMessage(e instanceof Error ? e.message : "Error")
     } finally {
@@ -111,11 +112,11 @@ export default function Composer({ workspaceId, profiles }: { workspaceId: strin
         <CardTitle>Crear Post</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Gemini */}
+        {/* Gemini - opcional */}
         <div className="flex gap-2">
-          <Input placeholder="Tema para IA ej: lanzamiento café premium" value={topic} onChange={(e) => setTopic(e.target.value)} />
+          <Input placeholder="Tema para IA (opcional) ej: lanzamiento café premium" value={topic} onChange={(e) => setTopic(e.target.value)} />
           <Button type="button" onClick={handleGemini} disabled={loadingGemini} variant="secondary">
-            {loadingGemini ? "..." : "Generar con IA"}
+            {loadingGemini ? "..." : "Generar con IA (demo)"}
           </Button>
         </div>
         {geminiOptions.length > 0 && (

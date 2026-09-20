@@ -8,8 +8,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Topic requerido (mín 3 caracteres)" }, { status: 400 })
     }
 
+    // IA opcional - si no hay key, devolver mocks sin error para no bloquear la interfaz
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.includes("TU_GEMINI")) {
-      return NextResponse.json({ error: "GEMINI_API_KEY no configurada en .env.local" }, { status: 500 })
+      const mocks = [
+        `✨ ${topic} - Idea 1: Descubre por qué ${topic} está cambiando el juego. ¿Listo para dar el siguiente paso? #Omnify #Marketing`,
+        `🚀 ${topic} - Idea 2: 3 claves de ${topic} que nadie te contó. Guárdalo y compártelo. 👉 #Tips #RedesSociales`,
+        `💡 ${topic} - Idea 3: Historias reales de ${topic} que inspiran. ¿Cuál es tu favorita? Comenta 👇 #Inspiración`,
+      ]
+      return NextResponse.json({ copys: mocks, mocked: true })
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
