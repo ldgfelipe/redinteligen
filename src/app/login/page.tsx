@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
+export const dynamic = "force-dynamic"
+
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -15,7 +17,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
   const router = useRouter()
-  const supabase = createClient()
+  // No instanciar en el top-level durante el build - lazy
+  const getSupabase = () => createClient()
 
   async function handleAuth(e: React.FormEvent) {
     e.preventDefault()
@@ -23,6 +26,7 @@ export default function LoginPage() {
     setMessage("")
 
     try {
+      const supabase = getSupabase()
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
@@ -47,6 +51,7 @@ export default function LoginPage() {
   }
 
   async function handleGoogle() {
+    const supabase = getSupabase()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },

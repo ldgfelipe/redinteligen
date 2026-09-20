@@ -19,7 +19,7 @@ export default function Composer({ workspaceId, profiles }: { workspaceId: strin
   const [loadingGemini, setLoadingGemini] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState("")
-  const supabase = createClient()
+  const getSupabase = () => createClient()
 
   async function handleGemini() {
     if (!topic.trim()) return setMessage("Escribe un tema para generar copys")
@@ -51,6 +51,7 @@ export default function Composer({ workspaceId, profiles }: { workspaceId: strin
       const scheduled = scheduledFor ? new Date(scheduledFor).toISOString() : null
       const status = scheduled && new Date(scheduled) > new Date() ? "scheduled" : "draft"
 
+      const supabase = getSupabase()
       const { data: post, error: postError } = await supabase
         .from("posts")
         .insert({
