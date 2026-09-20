@@ -10,22 +10,28 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login")
 
-  // Obtener o crear workspace
+  // Obtener o crear workspace (maybeSingle no lanza 406 si no existe)
   let { data: workspace } = await supabase
     .from("workspaces")
     .select("id, name")
     .eq("user_id", user.id)
     .limit(1)
-    .single()
+    .maybeSingle()
 
   if (!workspace) {
-    const { data: created } = await supabase
+    const { data: created, error: createErr } = await supabase
       .from("workspaces")
       .insert({ user_id: user.id, name: "Mi Workspace" })
       .select("id, name")
       .single()
+    if (createErr) {
+      console.error("Workspace create error:", createErr)
+      throw new Error("No se pudo crear workspace: " + createErr.message)
+    }
     workspace = created
   }
+
+  if (!workspace) throw new Error("Workspace no disponible")
 
   const { data: profiles } = await supabase
     .from("social_profiles")
