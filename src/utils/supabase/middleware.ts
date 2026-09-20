@@ -2,18 +2,19 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
 export async function updateSession(request: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // Si no hay env vars (build o Vercel mal configurado), no bloquear - dejar pasar
-  if (!url || !key) {
-    console.warn("Middleware: Missing Supabase env vars, skipping auth check")
-    return NextResponse.next({ request })
-  }
+    // Si no hay env vars (build o Vercel mal configurado), no bloquear - dejar pasar
+    if (!url || !key) {
+      console.warn("Middleware: Missing Supabase env vars, skipping auth check")
+      return NextResponse.next({ request })
+    }
 
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+    let supabaseResponse = NextResponse.next({
+      request,
+    })
 
   const supabase = createServerClient(url, key,
     {
@@ -64,5 +65,9 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  return supabaseResponse
+    return supabaseResponse
+  } catch (e) {
+    console.error("Middleware fatal error (bypass):", e)
+    return NextResponse.next({ request })
+  }
 }
