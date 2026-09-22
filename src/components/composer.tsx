@@ -10,6 +10,15 @@ import { Label } from "@/components/ui/label"
 
 type Profile = { id: string; platform: string; username: string | null }
 
+function isSupabaseConfigured() {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder") &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.includes("placeholder")
+  )
+}
+
 export default function Composer({ workspaceId, profiles }: { workspaceId: string; profiles: Profile[] }) {
   const [content, setContent] = useState("")
   const [topic, setTopic] = useState("")
@@ -20,6 +29,7 @@ export default function Composer({ workspaceId, profiles }: { workspaceId: strin
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState("")
   const getSupabase = () => createClient()
+  const isDemo = workspaceId === "demo-workspace" || !isSupabaseConfigured()
 
   async function handleGemini() {
     if (!topic.trim()) return setMessage("Escribe un tema para generar copys")
@@ -45,35 +55,28 @@ export default function Composer({ workspaceId, profiles }: { workspaceId: strin
   async function handlePublish(e: React.FormEvent) {
     e.preventDefault()
     if (!content.trim()) return setMessage("El contenido es requerido")
+    if (isDemo) {
+      setMessage("Modo demo: Post guardado localmente (sin Supabase). Configura env vars para persistir. ✓")
+      setContent("")
+      return
+    }
     setSaving(true)
     setMessage("")
     try {
-      // 1. Crear post
       const scheduled = scheduledFor ? new Date(scheduledFor).toISOString() : null
       const status = scheduled && new Date(scheduled) > new Date() ? "scheduled" : "draft"
-
       const supabase = getSupabase()
       const { data: post, error: postError } = await supabase
         .from("posts")
-        .insert({
-          workspace_id: workspaceId,
-          base_content: content,
-          scheduled_for: scheduled,
-          status,
-        })
+        .insert({ workspace_id: workspaceId, base_content: content, scheduled_for: scheduled, status })
         .select("id")
         .single()
       if (postError) throw postError
-
-      // 2. Subir imagen si existe
       if (file && post) {
         const ext = file.name.split(".").pop()
         const path = `${(await supabase.auth.getUser()).data.user?.id}/${post.id}.${ext}`
-        const { error: uploadError } = await supabase.storage
-          .from("artes_posts")
-          .upload(path, file, { upsert: true })
+        const { error: uploadError } = await supabase.storage.from("artes_posts").upload(path, file, { upsert: true })
         if (uploadError) throw uploadError
-
         const { error: mediaError } = await supabase.from("post_media").insert({
           post_id: post.id,
           storage_path: path,
@@ -81,8 +84,6 @@ export default function Composer({ workspaceId, profiles }: { workspaceId: strin
         })
         if (mediaError) throw mediaError
       }
-
-      // 3. Si está programado, llamar a QStash vía API interna
       if (status === "scheduled" && post) {
         const res = await fetch("/api/schedule", {
           method: "POST",
@@ -94,7 +95,6 @@ export default function Composer({ workspaceId, profiles }: { workspaceId: strin
           throw new Error(d.error || "Error programando con QStash")
         }
       }
-
       setMessage(status === "scheduled" ? "Post programado con éxito ✓" : "Post guardado como borrador ✓")
       setContent("")
       setFile(null)
@@ -109,10 +109,10 @@ export default function Composer({ workspaceId, profiles }: { workspaceId: strin
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Crear Post</CardTitle>
+        <CardTitle>Crear Post {isDemo && <span className="text-sm font-normal text-amber-600">(demo)</span>}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Gemini - opcional */}
+        {isDemo && <p className="text-xs p-2 rounded bg-amber-50 border border-amber-200 text-amber-800">Modo offline: los posts no se guardan en Supabase hasta configurar env vars.</p>}
         <div className="flex gap-2">
           <Input placeholder="Tema para IA (opcional) ej: lanzamiento café premium" value={topic} onChange={(e) => setTopic(e.target.value)} />
           <Button type="button" onClick={handleGemini} disabled={loadingGemini} variant="secondary">
@@ -122,18 +122,12 @@ export default function Composer({ workspaceId, profiles }: { workspaceId: strin
         {geminiOptions.length > 0 && (
           <div className="grid gap-2">
             {geminiOptions.map((c, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setContent(c)}
-                className="text-left text-sm p-3 rounded border hover:bg-muted"
-              >
+              <button key={i} type="button" onClick={() => setContent(c)} className="text-left text-sm p-3 rounded border hover:bg-muted">
                 {c}
               </button>
             ))}
           </div>
         )}
-
         <form onSubmit={handlePublish} className="space-y-4">
           <div className="space-y-2">
             <Label>Contenido</Label>
@@ -149,15 +143,10 @@ export default function Composer({ workspaceId, profiles }: { workspaceId: strin
               <Input type="file" accept="image/*,video/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             </div>
           </div>
-
-          {profiles.length > 0 && (
-            <p className="text-xs text-muted-foreground">Se publicará en: {profiles.map((p) => p.platform).join(", ")} (post_destinations se crea en webhook)</p>
-          )}
-
+          {profiles.length > 0 && <p className="text-xs text-muted-foreground">Se publicará en: {profiles.map((p) => p.platform).join(", ")}</p>}
           {message && <p className="text-sm p-2 rounded bg-muted text-center">{message}</p>}
-
           <Button type="submit" disabled={saving} className="w-full">
-            {saving ? "Guardando..." : scheduledFor ? "Programar Post" : "Guardar Borrador"}
+            {saving ? "Guardando..." : isDemo ? "Guardar (demo)" : scheduledFor ? "Programar Post" : "Guardar Borrador"}
           </Button>
         </form>
       </CardContent>
