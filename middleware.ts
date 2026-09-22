@@ -13,8 +13,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Solo correr en rutas que necesitan auth, no en cada asset/api
-    "/dashboard/:path*",
-    "/login",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }
