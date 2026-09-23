@@ -51,7 +51,7 @@ export default function LoginPage() {
           options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
         })
         if (error) throw error
-        setMessage("Revisa tu email para confirmar la cuenta. Luego podrás iniciar sesión.")
+        setMessage("Registro recibido. Tu cuenta está pendiente de aprobación por el administrador (ldgfelipecarrera@gmail.com). Intenta iniciar sesión luego.")
       }
     } catch (err: unknown) {
       setMessage(err instanceof Error ? err.message : "Error desconocido")

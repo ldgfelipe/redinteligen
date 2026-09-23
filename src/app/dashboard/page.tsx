@@ -49,6 +49,34 @@ export default async function DashboardPage() {
 
     if (!user) redirect("/login")
 
+    // Verificar aprobación admin (si tabla no existe, se asume aprobado)
+    let isApproved = true
+    let isAdmin = user.email === "ldgfelipecarrera@gmail.com"
+    try {
+      const { data: profile } = await supabase.from("user_profiles").select("approved, is_admin").eq("id", user.id).maybeSingle()
+      if (profile) {
+        isApproved = profile.approved
+        isAdmin = profile.is_admin
+      } else if (!isAdmin) {
+        // Si no hay profile, crear uno pendiente (para usuarios nuevos sin trigger)
+        await supabase.from("user_profiles").insert({ id: user.id, email: user.email!, approved: false, is_admin: false })
+        isApproved = false
+      }
+    } catch {}
+    if (!isApproved && !isAdmin) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-4">
+          <div className="max-w-md w-full bg-white rounded-lg border p-8 text-center space-y-3">
+            <h1 className="text-xl font-semibold">Cuenta pendiente de aprobación</h1>
+            <p className="text-sm text-muted-foreground">Tu registro con {user.email} está esperando que el administrador lo apruebe.</p>
+            <p className="text-xs text-muted-foreground">Contacta a ldgfelipecarrera@gmail.com</p>
+            <form action="/auth/signout" method="post"><button className="text-sm underline mt-4">Cerrar sesión</button></form>
+            {isAdmin && <a href="/admin" className="text-sm underline block mt-2">Ir a panel admin</a>}
+          </div>
+        </div>
+      )
+    }
+
     let { data: workspace } = await supabase
       .from("workspaces")
       .select("id, name")
@@ -85,7 +113,10 @@ export default async function DashboardPage() {
         <header className="border-b bg-white dark:bg-zinc-900">
           <div className="mx-auto max-w-5xl flex h-14 items-center justify-between px-4">
             <h1 className="font-semibold text-lg">Omnify</h1>
-            <span className="text-sm text-muted-foreground">{user.email} · {workspace?.name}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">{user.email} · {workspace?.name}</span>
+              {isAdmin && <a href="/admin" className="text-xs border rounded px-2 py-1">Admin</a>}
+            </div>
           </div>
         </header>
         <main className="mx-auto max-w-5xl p-4 md:p-6 space-y-6">
