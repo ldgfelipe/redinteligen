@@ -14,7 +14,7 @@ export default async function ClientsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  let { data: workspace } = await supabase.from("workspaces").select("id").eq("user_id", user.id).maybeSingle()
+  let { data: workspace } = await supabase.from("workspaces").select("id").eq("user_id", user.id).limit(1).maybeSingle()
   if (!workspace) {
     const { data: created } = await supabase.from("workspaces").insert({ user_id: user.id, name: "Mi Workspace" }).select("id").single()
     workspace = created
@@ -40,9 +40,9 @@ export default async function ClientsPage() {
     const supabase2 = await createClient()
     const { data: { user: u } } = await supabase2.auth.getUser()
     if (!u) return
-    const { data: ws } = await supabase2.from("workspaces").select("id").eq("user_id", u.id).maybeSingle()
+    const { data: ws } = await supabase2.from("workspaces").select("id").eq("user_id", u.id).limit(1).maybeSingle()
     if (!ws) return
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Date.now().toString(36).slice(-4)
     const { error } = await supabase2.from("clients").insert({ workspace_id: ws.id, name, slug, description: description || null })
     if (error) console.error("create client error", error)
     revalidatePath("/dashboard/clients")

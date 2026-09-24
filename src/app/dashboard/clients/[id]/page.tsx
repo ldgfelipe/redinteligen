@@ -16,7 +16,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  const { data: workspace } = await supabase.from("workspaces").select("id").eq("user_id", user.id).maybeSingle()
+  const { data: workspace } = await supabase.from("workspaces").select("id").eq("user_id", user.id).limit(1).maybeSingle()
   if (!workspace) redirect("/dashboard")
 
   const { data: client, error: cErr } = await supabase.from("clients").select("id, name, description, workspace_id").eq("id", id).maybeSingle()
@@ -40,7 +40,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     const supabase2 = await createClient()
     const { data: { user: u } } = await supabase2.auth.getUser()
     if (!u) return
-    const { data: ws } = await supabase2.from("workspaces").select("id").eq("user_id", u.id).maybeSingle()
+    const { data: ws } = await supabase2.from("workspaces").select("id").eq("user_id", u.id).limit(1).maybeSingle()
     if (!ws) return
     await supabase2.from("social_profiles").insert({ workspace_id: ws.id, client_id: id, platform, username, access_token: access_token || null })
     revalidatePath(`/dashboard/clients/${id}`)
