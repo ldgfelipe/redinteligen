@@ -19,7 +19,7 @@ function isSupabaseConfigured() {
   )
 }
 
-export default function Composer({ workspaceId, profiles }: { workspaceId: string; profiles: Profile[] }) {
+export default function Composer({ workspaceId, profiles, clientId }: { workspaceId: string; profiles: Profile[]; clientId?: string }) {
   const [content, setContent] = useState("")
   const [topic, setTopic] = useState("")
   const [scheduledFor, setScheduledFor] = useState("")
@@ -68,7 +68,7 @@ export default function Composer({ workspaceId, profiles }: { workspaceId: strin
       const supabase = getSupabase()
       const { data: post, error: postError } = await supabase
         .from("posts")
-        .insert({ workspace_id: workspaceId, base_content: content, scheduled_for: scheduled, status })
+        .insert({ workspace_id: workspaceId, client_id: clientId || null, base_content: content, scheduled_for: scheduled, status })
         .select("id")
         .single()
       if (postError) throw postError
