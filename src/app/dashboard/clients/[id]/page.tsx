@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Composer from "@/components/composer"
+import ConnectionTester from "@/components/connection-tester"
 import { revalidatePath } from "next/cache"
 
 export const dynamic = "force-dynamic"
@@ -63,7 +64,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <CardContent className="space-y-4">
               <p className="text-xs text-muted-foreground">Conecta las cuentas de este cliente. Luego podrás programar publicaciones que saldrán solo en estas redes.</p>
               {clientProfiles.length ? (
-                <ul className="space-y-2">{clientProfiles.map(p => <li key={p.id} className="flex justify-between text-sm border rounded p-2"><span>{p.platform} - {p.username}</span><span className="text-xs text-zinc-400">{p.id.slice(0,6)}</span></li>)}</ul>
+                <ul className="space-y-3">{clientProfiles.map(p => <li key={p.id} className="border rounded p-2 space-y-2"><div className="flex justify-between text-sm"><span>{p.platform} - {p.username}</span><span className="text-xs text-zinc-400">{p.id.slice(0,6)}</span></div><ConnectionTester profileId={p.id} platform={p.platform} /></li>)}</ul>
               ) : <p className="text-sm text-muted-foreground">Aún no hay redes conectadas.</p>}
               <form action={connectProfile} className="space-y-2 border-t pt-4">
                 <Label className="text-xs">Añadir red (config manual - OAuth vendrá luego)</Label>
@@ -88,7 +89,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <CardHeader><CardTitle className="text-base">Campañas / Posts de {client.name}</CardTitle></CardHeader>
             <CardContent>
               {postsToShow.length ? (
-                <ul className="space-y-2">{postsToShow.map(p => <li key={p.id} className="text-sm border-b py-2 last:border-0"><p className="truncate">{p.base_content}</p><span className="text-xs text-muted-foreground">{p.status} {p.scheduled_for ? `· ${new Date(p.scheduled_for).toLocaleString()}` : ""}</span></li>)}</ul>
+                <ul className="space-y-2">{postsToShow.map(p => <li key={p.id} className="text-sm border-b py-2 last:border-0 flex justify-between"><div><p className="truncate max-w-[260px]">{p.base_content}</p><span className="text-xs text-muted-foreground">{p.status} {p.scheduled_for ? `· ${new Date(p.scheduled_for).toLocaleString()}` : ""}</span></div><a href={`/dashboard/clients/${id}/posts/${p.id}`} className="text-xs underline">Ver detalle</a></li>)}</ul>
               ) : <p className="text-sm text-muted-foreground">Aún no hay publicaciones para este cliente.</p>}
             </CardContent>
           </Card>
